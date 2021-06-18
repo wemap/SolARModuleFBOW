@@ -62,7 +62,7 @@ public:
 
 	/// @brief Add a keyframe to the retrieval model
 	/// @param[in] keyframe: the keyframe to add to the retrieval model
-	/// @return FrameworkReturnCode::_SUCCESS if the keyfram adding succeed, else FrameworkReturnCode::_ERROR_
+	/// @return FrameworkReturnCode::_SUCCESS if the keyframe adding succeed, else FrameworkReturnCode::_ERROR_
     FrameworkReturnCode addKeyframe(const SRef<datastructure::Keyframe> keyframe) override;
 
 	/// @brief Suppress a keyframe from the retrieval model
@@ -71,16 +71,16 @@ public:
 	FrameworkReturnCode suppressKeyframe(uint32_t keyframe_id) override;
 
 
-	/// @brief Retrieve a set of keyframes close to the frame pass in input.
+	/// @brief Retrieve a set of keyframes close to the frame passed in input.
 	/// @param[in] frame: the frame for which we want to retrieve close keyframes.
-	/// @param[out] retKeyframes_id: a set of keyframe ids which are close to the frame pass in input
+	/// @param[out] retKeyframes_id: a set of keyframe ids which are close to the frame passed in input
 	/// @return FrameworkReturnCode::_SUCCESS if the retrieve succeed, else FrameworkReturnCode::_ERROR_
     FrameworkReturnCode retrieve(const SRef<datastructure::Frame> frame, std::vector<uint32_t> &retKeyframes_id) override;
 
-	/// @brief Retrieve a set of keyframes close to the frame pass in input.
+	/// @brief Retrieve a set of keyframes close to the frame passed in input.
 	/// @param[in] frame: the frame for which we want to retrieve close keyframes.
 	/// @param[in] canKeyframes_id: a set includes id of keyframe candidates
-	/// @param[out] retKeyframes_id: a set of keyframe ids which are close to the frame pass in input
+	/// @param[out] retKeyframes_id: a set of keyframe ids which are close to the frame passed in input
 	/// @return FrameworkReturnCode::_SUCCESS if the retrieve succeed, else FrameworkReturnCode::_ERROR_
     FrameworkReturnCode retrieve(const SRef<datastructure::Frame> frame, const std::set<unsigned int> & canKeyframes_id, std::vector<uint32_t> & retKeyframes_id) override;
 

@@ -80,6 +80,7 @@ FrameworkReturnCode SolARKeyframeRetrieverFBOW::addKeyframe(const SRef<Keyframe>
 
 	// Add bow desc to the database
 	m_keyframeRetrieval->acquireLock();
+	// TODO: refactor names
     return m_keyframeRetrieval->addDescriptor(keyframe->getId(), v_bowFeature, v_bowLevelFeature);
 }
 
@@ -91,25 +92,27 @@ FrameworkReturnCode SolARKeyframeRetrieverFBOW::suppressKeyframe(uint32_t keyfra
 
 FrameworkReturnCode SolARKeyframeRetrieverFBOW::retrieve(const SRef<Frame> frame, std::vector<uint32_t> &retKeyframes_id)
 {
-	// convert frame desc to Mat opencv
+	// convert frame descriptors to an opencv Mat
 	SRef<DescriptorBuffer> desc_Solar = frame->getDescriptors();
 	if (desc_Solar->getNbDescriptors() == 0)
 		return FrameworkReturnCode::_ERROR_;
 	cv::Mat desc_OpenCV(desc_Solar->getNbDescriptors(), desc_Solar->getNbElements(), m_VOC.getDescType(), desc_Solar->data());
 
-	// calculate bow desc corresponding to the query frame
+	// calculate BoWs corresponding to the query frame (bow stands for BoW while bow2 stands for direct index)
 	fbow::fBow v_bow;
 	fbow::fBow2 v_bow2;
 	m_VOC.transform(desc_OpenCV, m_level, v_bow, v_bow2);
 
-    // convertir bow to solar
+    // convert BoW from fbow to BoW from SolAR (bowFeature stands for BoW while bowLevelFeature stands for direct index)
     datastructure::BoWFeature v_bowFeature = SolARFBOWHelper::fbow2Solar(v_bow);
     datastructure::BoWLevelFeature v_bowLevelFeature = SolARFBOWHelper::fbow2Solar(v_bow2);
 
+	// TODO: optimize the whole following pipeline
 	// get candidates that have at least 1 common word with the query frame
 	std::map<uint32_t, int> scoreCandidates;
-    for (auto const &it : v_bowLevelFeature) {
+    for (auto const &it : v_bowFeature) {
 		std::set<uint32_t> kfs_id; 		
+		// TODO: pb with of KeyframeRetrieval which is not an interface
 		if (m_keyframeRetrieval->getInvertedIndex(it.first, kfs_id) != FrameworkReturnCode::_SUCCESS)
 			continue;
 		for (auto const &it_kf : kfs_id)
@@ -246,27 +249,30 @@ void SolARKeyframeRetrieverFBOW::findBestMatches(const cv::Mat &feature1, const 
 
 FrameworkReturnCode SolARKeyframeRetrieverFBOW::match(const SRef<Frame> frame, const SRef<Keyframe> keyframe, std::vector<DescriptorMatch> &matches)
 {
-	// convert frame desc to Mat opencv
+	// convert frame descriptors to Mat opencv
 	SRef<DescriptorBuffer> descriptors = frame->getDescriptors();
 	if (descriptors->getNbDescriptors() == 0)
 		return FrameworkReturnCode::_ERROR_;
 	cv::Mat cvDescriptors(descriptors->getNbDescriptors(), descriptors->getNbElements(), m_VOC.getDescType(), descriptors->data());
 
-	// convert keyframe desc to Mat opencv
+	// convert keyframe descriptors to Mat opencv
 	SRef<DescriptorBuffer> descriptors_kf = keyframe->getDescriptors();
 	if (descriptors_kf->getNbDescriptors() == 0)
 		return FrameworkReturnCode::_ERROR_;
 	cv::Mat cvDescriptors_kf(descriptors_kf->getNbDescriptors(), descriptors_kf->getNbElements(), m_VOC.getDescType(), descriptors_kf->data());
 
-    // get bow level desc of keyframe
+    // get bow level descriptors of the keyframe thanks to direct indexing
     datastructure::BoWLevelFeature bowLevelFeature;
     if (m_keyframeRetrieval->getBoWLevelFeature(keyframe->getId(), bowLevelFeature) != FrameworkReturnCode::_SUCCESS)
 		return FrameworkReturnCode::_ERROR_;
 
+	// for each descriptor of the frame
 	for (int i = 0; i < cvDescriptors.rows; i++) {
 		const cv::Mat cvDescriptor = cvDescriptors.row(i);
+		// get its representative node in the vocabulary tree at the level provided by m_level
 		int node = m_VOC.transform(cvDescriptor, m_level);
 		std::vector<uint32_t> candidates;
+		// check if there is a matching node in the keyframe
         auto it = bowLevelFeature.find(node);
         if (it != bowLevelFeature.end())
 			candidates = it->second;
